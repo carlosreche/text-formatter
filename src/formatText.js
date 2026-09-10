@@ -17,71 +17,113 @@
  */
 export default function formatText(text, options = {}) {
   if (typeof text !== 'string') {
-    return null;
+    throw new TypeError(`Text.format expects a string as the first argument. Given: ${typeof text}`);
   }
-  let { mode = 'proper', trimEdges = true, normalizeSpaces = true, removeNewlines = true,
-        lowercaseWords = null, language = null } = options;
-  let formattedText = text;
+
+  let {
+    mode = 'normal',
+    trimEdges = true,
+    normalizeSpaces = true,
+    removeNewlines = false,
+    lowercaseWords = null,
+    language = null
+  } = Object(options);
+
+  let formatted = text;
 
   if (trimEdges) {
-    formattedText = formattedText.trim();
+    formatted = formatted.trim();
   }
   if (removeNewlines) {
-    formattedText = formattedText.replace(/[\r\n]+/g, ' ');
+    formatted = formatted.replace(/[\r\n]+/g, ' ');
   }
   if (normalizeSpaces) {
-    formattedText = formattedText.replace(/(\s)\s+/g, '$1');
+    formatted = formatted.replace(/(\s)\s+/g, '$1');
   }
 
+  mode = String(mode).trim().toLowerCase();
   switch (mode) {
-    case 'upper': return formattedText.toUpperCase();
-    case 'lower': return formattedText.toLowerCase();
-    case 'first': 
-      return formattedText.toLowerCase().replace(/^([^\p{L}]*)(\p{L})/u,
-        (all, before, firstLetter) => (before + firstLetter.toUpperCase())
-      );
+    case 'normal':
+    case 'regular':
+      return formatted
+              .toLowerCase()
+              .replace(
+                /((^)[^\p{L}]*|[^\p{L}]+)((\p{L})((\p{L}|-\p{L})*))/gu,
+                (all, before, beggining, word, firstLetter, remaining) => {
+                  if ((beggining !== undefined) || /[.!?¡¿]\s*$/.test(before)) {
+                    return (before + firstLetter.toUpperCase() + remaining);
+                  }
+                  return all;
+                }
+              );
+
+    case 'upper':
+      return formatted.toUpperCase();
+
+    case 'lower':
+      return formatted.toLowerCase();
+
+    case 'first':
+      return formatted
+              .toLowerCase()
+              .replace(
+                /^([^\p{L}]*)(\p{L})/u,
+                (all, before, firstLetter) => (before + firstLetter.toUpperCase())
+              );
+
     case 'capitalize':
-      return formattedText.toLowerCase().replace(/(^|[^\p{L}]+)((\p{L})((\p{L}|-\p{L})*))/gu,
-        (all, before, word, firstLetter, remaining) => (before + firstLetter.toUpperCase() + remaining)
-      );
+      return formatted
+              .toLowerCase()
+              .replace(
+                /(^|[^\p{L}]+)((\p{L})((\p{L}|-\p{L})*))/gu,
+                (all, before, word, firstLetter, remaining) =>
+                                    (before + firstLetter.toUpperCase() + remaining)
+              );
+
     case 'proper':
-    default:
-  }
-  
-  let isLowercaseWord;
-  if (typeof lowercaseWords === 'string') {
-    isLowercaseWord = word => (word === lowercaseWords);
-  } else if (lowercaseWords instanceof RegExp) {
-    isLowercaseWord = word => lowercaseWords.test(word);
-  } else {
-    if (!Array.isArray(lowercaseWords)) {
-      language = ((typeof language === 'string') ? language : navigator?.language)?.trim().toLowerCase().split('-')[0];
-      switch (language) {
-        case 'pt':
-          lowercaseWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'em', 'por', 'com', 'para', 'sob', 'sobre', 'até', 'sem', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'pelo', 'pela', 'pelos', 'pelas', 'ao', 'aos', 'e', 'nem', 'mas', 'porém', 'contudo', 'todavia', 'entretanto', 'ou', 'logo', 'pois', 'portanto', 'porque', 'que'];
-          break;
-        case 'en':
-          lowercaseWords = ['of', 'and', 'the', 'in', 'to', 'for', 'with', 'on', 'at', 'by', 'from', 'a', 'an', 'or', 'but'];
-          break;
-        case 'es':
-        case 'spa':
-          lowercaseWords = ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo', 'del', 'al', 'a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'durante', 'en', 'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin', 'sobre', 'tras', 'vía', 'y', 'e', 'o', 'u', 'pero', 'sino', 'porque', 'aunque', 'si', 'ni'];
-          break;
-        default:
-          lowercaseWords = [];
+      let isLowercaseWord;
+      if (typeof lowercaseWords === 'string') {
+        isLowercaseWord = word => (word === lowercaseWords);
+      } else if (lowercaseWords instanceof RegExp) {
+        isLowercaseWord = word => lowercaseWords.test(word);
+      } else {
+        if (!Array.isArray(lowercaseWords)) {
+          language = ((typeof language === 'string') ? language : navigator?.language)?.trim().toLowerCase().split('-')[0];
+          switch (language) {
+            case 'pt':
+              lowercaseWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'em', 'por', 'com', 'para', 'sob', 'sobre', 'até', 'sem', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'pelo', 'pela', 'pelos', 'pelas', 'ao', 'aos', 'e', 'nem', 'mas', 'porém', 'contudo', 'todavia', 'entretanto', 'ou', 'logo', 'pois', 'portanto', 'porque', 'que'];
+              break;
+            case 'en':
+              lowercaseWords = ['of', 'and', 'the', 'in', 'to', 'for', 'with', 'on', 'at', 'by', 'from', 'a', 'an', 'or', 'but'];
+              break;
+            case 'es':
+            case 'spa':
+              lowercaseWords = ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'lo', 'del', 'al', 'a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'durante', 'en', 'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin', 'sobre', 'tras', 'vía', 'y', 'e', 'o', 'u', 'pero', 'sino', 'porque', 'aunque', 'si', 'ni'];
+              break;
+            default:
+              lowercaseWords = [];
+          }
+        }
+        isLowercaseWord = word => lowercaseWords.some(lcWord => {
+          if (typeof lcWord === 'string') return (word === lcWord);
+          if (lcWord instanceof RegExp) return lcWord.test(word);
+          return false;
+        });
       }
-    }
-    isLowercaseWord = word => lowercaseWords.some(lcWord => {
-      if (typeof lcWord === 'string') return (word === lcWord);
-      if (lcWord instanceof RegExp) return lcWord.test(word);
-      return false;
-    });
+
+      return formatted
+              .toLowerCase()
+              .replace(
+                /((^)[^\p{L}]*|[^\p{L}]+)((\p{L})((\p{L}|-\p{L})*))/gu,
+                (all, before, beggining, word, firstLetter, remaining) => {
+                  if (isLowercaseWord(word) && !/[.!?¡¿]\s*$/.test(before) && (beggining === undefined)) {
+                    return all;
+                  }
+                  return (before + firstLetter.toUpperCase() + remaining);
+                }
+              );
+
+    default:
+      return formatted;
   }
-  const replaceFunction = (all, before, word, firstLetter, remaining) => {
-    if (isLowercaseWord(word) && /\s$/.test(before) && !/[.!?¡¿]\s+$/.test(before)) {
-      return all;
-    }
-    return (before + firstLetter.toUpperCase() + remaining);
-  };
-  return formattedText.toLowerCase().replace(/(^|[^\p{L}]+)((\p{L})((\p{L}|-\p{L})*))/gu, replaceFunction);
-}
+};
